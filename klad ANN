@@ -1,0 +1,17 @@
+outputlink1 (turn en river)
+outputlink2	(inzet ander)
+outputlink1sub (flop)
+
+Break-even:
+callinzet/pot = breakeven
+#als output link 1 < dan breakeven, fold met een kleine kans voor bluf
+
+if som(handsterkte/breakeven) < outputlink1:
+	fold
+else:
+
+
+x = (som(handsterkte/breakeven))/outputlink1
+
+    1/(1+ math.exp(-x))
+
