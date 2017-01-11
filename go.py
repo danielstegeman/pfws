@@ -1,5 +1,5 @@
 from deuces import Card, Evaluator, Deck
-from Ai import Player
+from Ai import Player, board
 import math
 
 #------------------Eigen variabelen-----------------
@@ -28,13 +28,14 @@ breakevenamount = {1:0.021,
 
 pot = 100
 inzet = 21.3
-
+stages = ['flop','turn','river', 'final']
 #---------------------------------------------------
 deck = Deck()
 # create a card
 card = Card.new('Qh')
 
 # create a board and hole cards
+"""
 board = [
     Card.new('Ah'),
     Card.new('2h'),
@@ -46,14 +47,18 @@ hand = [
     Card.new('8c'),
     Card.new('Qs')
 ]
+"""
 evaluator = Evaluator()
 #=====================================AI integratie=========================
 #uiteindelijk moet in dit blok het verloop van het spel komen
 Player1 = Player()
+Player2 = Player()
 
+hands = [Player1.hand,Player2.hand]
 
-hands = [Player1.hand]
-
+for x in stages:
+    Player1.turns(x)
+    Player2.turns(x)
 
 
 
@@ -61,21 +66,22 @@ hands = [Player1.hand]
 
 
 # pretty print cards to console
-Card.print_pretty_cards(board + hand)
+#Card.print_pretty_cards(board + hand)
 
 # create an evaluator
 
 
-# and rank your hand
-rank = evaluator.evaluate(board, hand)
-print "Rank for your hand is: %d" % rank
+# and rank your han
+#rank = evaluator.evaluate(board, hand)
+#print "Rank for your hand is: %d" % rank
 
 # or for random cards or games, create a deck
 print "Dealing a new hand..."
 
-board = board
-player1_hand = hand
-#player2_hand = deck.draw(2)
+
+player1_hand = Player1.hand
+hand = Player1.hand
+player2_hand = Player2.hand
 
 print "The board:"
 Card.print_pretty_cards(board)
@@ -84,7 +90,7 @@ print "Player 1's cards:"
 Card.print_pretty_cards(player1_hand)
 
 print "Player 2's cards:"
-#Card.print_pretty_cards(player2_hand)
+Card.print_pretty_cards(player2_hand)
 
 #p1_score = evaluator.evaluate(board, player1_hand)
 #p2_score = evaluator.evaluate(board, player2_hand)
@@ -192,11 +198,11 @@ if checksuited(player1_hand) == True or a == b:
 else:
     print 'garbage'
 
-
-
-
-
 """
+
+
+
+
 
 
 
