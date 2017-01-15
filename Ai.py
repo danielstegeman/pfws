@@ -1,11 +1,23 @@
 #ai v2
 import random, math
 from deuces import Card, Deck, Evaluator
+
 evaluator = Evaluator()
 deck = Deck()
 board = deck.draw(5)
+
+
 def sigmoid(x):
-    1/(1+math.exp(-x))
+    return 1/(1+math.exp(-x))
+
+startinghands = [
+    ['AA','KK','QQ', 'JJ', 'TT', '99','88','77'
+    ,'AK','AQ','AJ','AT','KQ','KJ','KT', 'QJ','QT','JT','J9','T9','98'], #preflop aggresief
+
+    ['66','55','44','33','22', 'A9','A8','A7', 'A6','A5','A4','A3','A2',
+    'K9','K8','K7','K6','K5','K4','K3','K2','Q9','Q8','J8','T8','87']#Alleen spelen als de kaarten suited zijn
+
+    ]
 
 breakevenamount = {1:0.021,
     2:0.043,
@@ -30,21 +42,30 @@ breakevenamount = {1:0.021,
     21:0.447,
     22:0.468}
 pot = 100
+blind = 25
+inzet = 70
 
 class Player():
     global board
+    maxinzet = 0
     outs = []
-    def __init__(self):
+    inzet = 0
+    def __init__(self,index):
         self.hand = deck.draw(2)
+        self.index = index
         self.bank = 5000
         self.evaluate()
 
     def evaluate(self):
         self.score = evaluator.evaluate(board,self.hand)
+        self.scoreflop = evaluator.evaluate(board[:3], self.hand)
+        self.scoreturn = evaluator.evaluate(board[:4], self.hand)
         self.pclass = evaluator.get_rank_class(self.score)
         print "Player 1 hand rank = %d (%s)" % (self.score, evaluator.class_to_string(self.pclass))
         rank = evaluator.evaluate(board, self.hand)
         print "Rank for your hand is: %d" % rank
+
+
     def determineOuts(self, turn):
         templist = []
         outs = []
@@ -81,23 +102,64 @@ class Player():
     def turnriver(self, turn):
         t = self.determineOuts(turn)
         if 0<t<23:
-            return sigmoid(10*breakevenamount[t]-10*(21.3/100)) #PLACEHOLDERS VERVANGEN
+            return  sigmoid(10*breakevenamount[t]-10*(inzet/pot)) #PLACEHOLDERS VERVANGEN
         elif t ==0:
             print "geen outs"
+            return 1
         elif t > 22:
             return sigmoid(10*0.5-10*(inzet/pot))
 
     def turns(self, turn):
         if turn == 'flop':
             print 'flop'
-            #voer functie van de preflop uit, return: inzet/actie
-        if turn == 'turn' or turn == 'river':
+            self.inzet = blind *2 / self.flop()
+            return self.inzet
+        if turn == 'turn':
+            self.inzet = (100-self.scoreflop/100.0) /self.turnriver(turn)
+            return self.inzet
+        if turn == 'river':
             print 'turn'
-            self.turnriver(turn)
+            self.inzet = (100-self.scoreturn/100.0) /self.turnriver(turn)
+            return self.inzet
         if turn == 'final':
             print 'final bets'
+            self.inzet = (100-self.scoreturn/100.0)
+            return self.inzet
+
+    def checksuited(self,hand):
+
+     card1 = Card.int_to_binary(self.hand[0])
+     card2 = Card.int_to_binary(self.hand[1])
+     for x in range(20,25):
+            if card1[x] == '1' and card2[x] == '1':
+                return True
 
 
+    def flop(self):
+        a = Card.get_rank_int(self.hand[0])
+        b = Card.get_rank_int(self.hand[1])
+
+        if Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[0] and (self.checksuited(self.hand) == True or a == b):
+                return sigmoid((a/10+b/10)- 12/10)
+
+        elif Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[1] and (self.checksuited(self.hand) == True or a == b) or (round(sigmoid((a/10)+(b/10)-(16/10))) and random.randint(1,2) ==1):
+            return sigmoid((a/10)+(b/10)-(16/10))
+            print 'ok'
+
+
+        else:
+            print 'garbage'
+            c1 = random.randint(9,13)
+            c2 = random.randint(9,13)
+            if random.randint(1,5) == 1:
+                print 'bluffing'
+                return sigmoid((c1/10+c2/10)- 12/10)
+            else:
+                return -1
+            #return sigmoid(a+b-14)
+
+    def inzetander(self):
+        return sigmoid(self.inzet/10 - self.maxinzet/10)
 
 
 
