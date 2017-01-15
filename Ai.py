@@ -4,7 +4,7 @@ from deuces import Card, Deck, Evaluator
 
 evaluator = Evaluator()
 deck = Deck()
-board = deck.draw(5)
+
 
 
 def sigmoid(x):
@@ -46,7 +46,7 @@ blind = 25
 inzet = 70
 
 class Player():
-    global board
+    board = deck.draw(5)
     maxinzet = 0
     outs = []
     inzet = 0
@@ -54,15 +54,15 @@ class Player():
         self.hand = deck.draw(2)
         self.index = index
         self.bank = 5000
-        self.evaluate()
+
 
     def evaluate(self):
-        self.score = evaluator.evaluate(board,self.hand)
-        self.scoreflop = evaluator.evaluate(board[:3], self.hand)
-        self.scoreturn = evaluator.evaluate(board[:4], self.hand)
+        self.score = evaluator.evaluate(self.board,self.hand)
+        self.scoreflop = evaluator.evaluate(self.board[:3], self.hand)
+        self.scoreturn = evaluator.evaluate(self.board[:4], self.hand)
         self.pclass = evaluator.get_rank_class(self.score)
-        print "Player 1 hand rank = %d (%s)" % (self.score, evaluator.class_to_string(self.pclass))
-        rank = evaluator.evaluate(board, self.hand)
+        print "Player %d hand rank = %d (%s)" % (self.index+1,self.score, evaluator.class_to_string(self.pclass))
+        rank = evaluator.evaluate(self.board, self.hand)
         print "Rank for your hand is: %d" % rank
 
 
@@ -74,16 +74,16 @@ class Player():
         turn = 'turn'
         ratio = 0
         for x in Deck.GetFullDeck():
-            if x not in self.hand and x not in board:
+            if x not in self.hand and x not in self.board:
                 if turn == 'turn':
-                    listx = board[:3]
+                    listx = self.board[:3]
                     listx.append(x)
                     #print "listx:"
                     #Card.print_pretty_cards(listx)
                     templist.append(evaluator.evaluate(self.hand,listx))
                     #print templist
                 if turn == 'river':
-                    listx = board[:4]
+                    listx = self.board[:4]
                     a = 46.0
                     listx.append(x)
                     #print "listx:"
@@ -111,18 +111,18 @@ class Player():
 
     def turns(self, turn):
         if turn == 'flop':
-            print 'flop'
+            #print 'flop'
             self.inzet = blind *2 / self.flop()
             return self.inzet
         if turn == 'turn':
             self.inzet = (100-self.scoreflop/100.0) /self.turnriver(turn)
             return self.inzet
         if turn == 'river':
-            print 'turn'
+            #print 'turn'
             self.inzet = (100-self.scoreturn/100.0) /self.turnriver(turn)
             return self.inzet
         if turn == 'final':
-            print 'final bets'
+            #print 'final bets'
             self.inzet = (100-self.scoreturn/100.0)
             return self.inzet
 
@@ -144,15 +144,15 @@ class Player():
 
         elif Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[1] and (self.checksuited(self.hand) == True or a == b) or (round(sigmoid((a/10)+(b/10)-(16/10))) and random.randint(1,2) ==1):
             return sigmoid((a/10)+(b/10)-(16/10))
-            print 'ok'
+            #print 'ok'
 
 
         else:
-            print 'garbage'
+            #print 'garbage'
             c1 = random.randint(9,13)
             c2 = random.randint(9,13)
             if random.randint(1,5) == 1:
-                print 'bluffing'
+            #print 'bluffing'
                 return sigmoid((c1/10+c2/10)- 12/10)
             else:
                 return -1

@@ -1,5 +1,6 @@
 from deuces import Card, Evaluator, Deck
 from Ai import Player, board
+
 import math
 
 #------------------Eigen variabelen-----------------
@@ -29,7 +30,19 @@ breakevenamount = {1:0.021,
 pot = 100
 inzet = 21.3
 stages = ['flop','turn','river', 'final']
+g_maxinzet = 0
+
 #---------------------------------------------------
+
+def mininzet():
+    global g_maxinzet
+    for x in playerlist:
+        if x.inzet > g_maxinzet:
+            g_maxinzet = x.inzet
+            return g_maxinzet
+
+
+
 deck = Deck()
 # create a card
 card = Card.new('Qh')
@@ -49,18 +62,39 @@ hand = [
 ]
 """
 evaluator = Evaluator()
+
 #=====================================AI integratie=========================
 #uiteindelijk moet in dit blok het verloop van het spel komen
-Player1 = Player()
-Player2 = Player()
+Player1 = Player(0)
+Player2 = Player(1)
+
+playerlist = [Player1,Player2]
 
 hands = [Player1.hand,Player2.hand]
 
+player1_hand = Player1.hand
+hand = Player1.hand
+player2_hand = Player2.hand
+
+print "The board:"
+Card.print_pretty_cards(board)
+
+print "Player 1's cards:"
+Card.print_pretty_cards(player1_hand)
+
+print "Player 2's cards:"
+Card.print_pretty_cards(player2_hand)
+evaluator.hand_summary(board, hands)
+
 for x in stages:
-    Player1.turns(x)
-    Player2.turns(x)
-
-
+    print x
+    print 'p1:'
+    print Player1.turns(x)
+    print 'p2:'
+    print Player2.turns(x)
+mininzet()
+for x in playerlist:
+    x.maxinzet = g_maxinzet
 
 #----------------------------------------------------------------------------
 
@@ -76,21 +110,11 @@ for x in stages:
 #print "Rank for your hand is: %d" % rank
 
 # or for random cards or games, create a deck
-print "Dealing a new hand..."
 
 
-player1_hand = Player1.hand
-hand = Player1.hand
-player2_hand = Player2.hand
 
-print "The board:"
-Card.print_pretty_cards(board)
 
-print "Player 1's cards:"
-Card.print_pretty_cards(player1_hand)
 
-print "Player 2's cards:"
-Card.print_pretty_cards(player2_hand)
 
 #p1_score = evaluator.evaluate(board, player1_hand)
 #p2_score = evaluator.evaluate(board, player2_hand)
@@ -105,9 +129,16 @@ Card.print_pretty_cards(player2_hand)
 
 # or just a summary of the entire hand
 
-evaluator.hand_summary(board, hands)
 
 
+def sigmoid(x):
+    return 1/(1+math.exp(-x))
+
+
+def inzetander():
+    return sigmoid(Player2.inzet/10-Player1.inzet/10)
+
+print inzetander()
 
 """
 #=====================================================================#
@@ -120,8 +151,8 @@ evaluator.hand_summary(board, hands)
 #        - als die groter is, output >0.5
 # Dit is dus de voornaamste schakel die bepaald of er ingezet, gepast word of verhoogd
 #=====================================================================#
-def sigmoid(x):
-    print 1/(1+math.exp(-x))
+
+
 
 
 templist = []
@@ -190,18 +221,27 @@ startinghands = [
     'K9','K8','K7','K6','K5','K4','K3','K2','Q9','Q8','J8','T8','87']#Alleen spelen als de kaarten suited zijn
 
     ]
-a = Card.STR_RANKS[Card.get_rank_int(hand[0])]
-b = Card.STR_RANKS[Card.get_rank_int(hand[1])]
+a = Card.get_rank_int(hand[0])
+b = Card.get_rank_int(hand[1])
 if checksuited(player1_hand) == True or a == b:
-    if a+b in startinghands[0]:
+    if Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[0]:
         print 'true'
+        sigmoid(a+b-14)
 else:
     print 'garbage'
+    sigmoid(a+b-14)
+
+
+pot = 100
+inzetp1 = 50
+inzetp2 = 100
+
+templist2 = []
+for x in deck.GetFullDeck():
+    if x not in player1_hand and x not in board:
+
 
 """
-
-
-
 
 
 
