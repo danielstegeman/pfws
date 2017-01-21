@@ -50,6 +50,8 @@ class Player():
     maxinzet = 0
     outs = []
     inzet = 0
+    pot = 0
+
     def __init__(self,index):
         self.hand = deck.draw(2)
         self.index = index
@@ -102,29 +104,40 @@ class Player():
     def turnriver(self, turn):
         t = self.determineOuts(turn)
         if 0<t<23:
-            return  sigmoid(10*breakevenamount[t]-10*(inzet/pot)) #PLACEHOLDERS VERVANGEN
+            return  sigmoid(10*breakevenamount[t]-10*(self.maxinzet/self.pot)) #PLACEHOLDERS VERVANGEN
         elif t ==0:
-            print "geen outs"
             return 1
         elif t > 22:
-            return sigmoid(10*0.5-10*(inzet/pot))
+            return sigmoid(10*0.5-10*(self.maxinzet/self.pot))
 
     def turns(self, turn):
         if turn == 'flop':
             #print 'flop'
             self.inzet = blind *2 / self.flop()
-            return self.inzet
+            if self.willcall()<0:
+                self.inzet *= self.willcall()
+            return self.inzet +self.inzet*(random.randint(-15,15)/100)
         if turn == 'turn':
             self.inzet = (100-self.scoreflop/100.0) /self.turnriver(turn)
-            return self.inzet
+            self.inzet *= self.inzetander()
+            if self.willcall()<0:
+                self.inzet *= self.willcall()
+            return self.inzet+self.inzet*(random.randint(-15,15)/100)
         if turn == 'river':
             #print 'turn'
-            self.inzet = (100-self.scoreturn/100.0) /self.turnriver(turn)
-            return self.inzet
+            self.inzet = (100-self.scoreturn/100.0) /self.turnriver(turn) + (100-self.scoreflop/100.0)*(self.turnriverdiff(turn) - 0.5)
+            self.inzet *= self.inzetander()
+            if self.willcall()<0:
+                self.inzet *= self.willcall()
+            return self.inzet + self.inzet*(random.randint(-15,15)/100)
         if turn == 'final':
             #print 'final bets'
-            self.inzet = (100-self.scoreturn/100.0)
-            return self.inzet
+            self.inzet = (100-self.scoreturn/100.0)  + (100-self.scoreflop/100.0)*(self.turnriverdiff(turn) - 0.5)
+            self. inzet *= self.inzetander()
+            if self.willcall()<0:
+                self.inzet *= self.willcall()
+            return self.inzet + self.inzet*(random.randint(-15,15)/100)
+
 
     def checksuited(self,hand):
 
@@ -139,7 +152,7 @@ class Player():
         a = Card.get_rank_int(self.hand[0])
         b = Card.get_rank_int(self.hand[1])
 
-        if Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[0] and (self.checksuited(self.hand) == True or a == b):
+        if Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[0]:
                 return sigmoid((a/10+b/10)- 12/10)
 
         elif Card.STR_RANKS[a]+Card.STR_RANKS[b] in startinghands[1] and (self.checksuited(self.hand) == True or a == b) or (round(sigmoid((a/10)+(b/10)-(16/10))) and random.randint(1,2) ==1):
@@ -160,6 +173,28 @@ class Player():
 
     def inzetander(self):
         return sigmoid(self.inzet/10 - self.maxinzet/10)
+
+    def turnriverdiff(self,turn):
+
+
+        if turn == 'river':
+            return sigmoid(evaluator.evaluate(self.hand,self.board[:3])-evaluator.evaluate(self.hand,self.board[:4]))
+        if turn == 'final':
+            return sigmoid(evaluator.evaluate(self.hand,self.board[:4])-evaluator.evaluate(self.hand,self.board))
+
+    def willcall(self):
+        x = 100 * sigmoid(self.inzet/50.0-self.maxinzet/50)
+        y = random.randint(40,45)
+        if x < y:
+            return - 1
+        else:
+            return sigmoid(self.inzet/50.0-self.maxinzet/50)
+
+
+
+
+
+
 
 
 

@@ -38,7 +38,9 @@ hands = [Player1.hand,Player2.hand]
 
 
 #==============================Functies======================================#
-
+def changeobjVars(variable, new_value):
+    for x in playerlist:
+        x.variable = new_value
 def mininzet():
     global g_maxinzet
     for x in playerlist:
@@ -46,7 +48,7 @@ def mininzet():
             g_maxinzet = x.inzet
             return g_maxinzet
 
-def myround(x, base=25):
+def myround(x, base=5):
     return int(base * round(float(x)/base))
 def playermoney():
     for x in playerlist:
@@ -55,13 +57,13 @@ def playermoney():
         else:
             print 'Player %d lost $%d' % (x.index+1,optafel[x.index])
 def bettinground(stage):
-    global has_folded, has_raised,beurt,vorigoptafel,optafel,inzetten, turn
+    global has_folded, has_raised,beurt,vorigoptafel,optafel,inzetten, turn, g_maxinzet
     inzetten = [myround(playerlist[0].turns(stages[stage])),myround(playerlist[1].turns(stages[stage]))]
-    has_raised=[False,False]
+    has_raised = [False, False]
+
     print stages[stage]
     while turn == stages[stage]:
             try:
-                mininzet()
                 if False not in has_folded:
                     gameprogress = False
                     break
@@ -82,6 +84,7 @@ def bettinground(stage):
 
                         elif inzetten[beurt] < g_maxinzet:
                             vorigoptafel[beurt] = optafel[beurt]
+
                             playerlist[beurt].bank -= inzetten[beurt]
                             optafel[beurt] += inzetten[beurt]
                             has_raised[beurt] = True
@@ -91,6 +94,10 @@ def bettinground(stage):
 
                         else:
                             vorigoptafel[beurt] = optafel[beurt]
+                            if inzetten[beurt] > g_maxinzet:
+                                g_maxinzet = inzetten[beurt]
+                                for x in playerlist:
+                                    x.maxinzet = g_maxinzet
                             playerlist[beurt].bank -= inzetten[beurt]
                             optafel[beurt] += inzetten[beurt]
 
@@ -102,19 +109,32 @@ def bettinground(stage):
 
                 else:
                     if has_folded[beurt] == True:
-                        gameprogress = False
-                        break
+                        beurt +=1
 
                 if all(x == True for x in has_raised):
                     vorigoptafel = optafel
                     if optafel[beurt] != max(optafel):
-                        optafel[beurt] = max(optafel) #Dit deel callt automatisch
-                        playerlist[beurt].bank -= optafel[beurt]-vorigoptafel[beurt]
+                        if playerlist[beurt].willcall()>=0:
+
+                            optafel[beurt] = max(optafel) #Dit deel callt automatisch
+                            playerlist[beurt].bank -= optafel[beurt]-vorigoptafel[beurt]
+                        else:
+                            #fold
+                            print '%d folding' % (beurt + 1)
+                            has_folded[beurt] = True
+                            has_raised[beurt] = True
+                            vorigoptafel[beurt] = optafel[beurt]
+                            beurt += 1
+
 
 
                     if any(x == True for x in has_folded):
-                        gameprogress = False
-                        break
+                        if stage == 3:
+                            print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
+                            break
+                        else:
+                            turn = stages[stage+1]
+                            break
                     if all(x==max(optafel) for x in optafel) and all(x == True for x in has_raised):
                         if stage == 3:
                             print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
@@ -124,6 +144,8 @@ def bettinground(stage):
                             break
                     else:
                         beurt +=1
+                elif has_folded[beurt] == True and has_raised[beurt] == False:
+                    has_raised[beurt] = True
 
 
             except IndexError:
@@ -133,13 +155,21 @@ def bettinground(stage):
 
 #=============================Hoofdloop======================================#
 
+#"""
+for x in range(100):
+    global has_folded,has_raised, g_maxinzet
 
-for x in range(15):
+    deck.shuffle()
+    has_folded = [False, False]
+    turn = stages[0]
+
     board = deck.draw(5)
     for x in playerlist:
         x.evaluate()
         x.hand = deck.draw(2)
         x.board = board
+        x.pot = pot
+    hands = [Player1.hand,Player2.hand]
     print "The board:"
     Card.print_pretty_cards(board)
     for x in playerlist:
@@ -154,18 +184,33 @@ for x in range(15):
 
     vorigoptafel = optafel
 
+    try:
+        bettinground(0)
+        g_maxinzet = 0
+        for x in playerlist:
+            x.maxinzet = g_maxinzet
+        bettinground(1)
+        g_maxinzet = 0
+        for x in playerlist:
+            x.maxinzet = g_maxinzet
+        bettinground(2)
+        g_maxinzet = 0
+        for x in playerlist:
+            x.maxinzet = g_maxinzet
+        bettinground(3)
 
-    bettinground(0)
-    bettinground(1)
-    bettinground(2)
-    bettinground(3)
-    winner = evaluator.hand_summary(board, hands)
-    playermoney()
+        winner = evaluator.hand_summary(board, hands)
+        playermoney()
+    except KeyError:
+        print "KeyError, Skipping round"
+        #oorzaak van de keyerror onbekend
+        continue
     try:
         for x in winner:
-            playerlist[x].bank += sum(optafel)/len(winner)
+            if has_folded[x] == False:
+                playerlist[x].bank += sum(optafel)/len(winner)
     except:
         playerlist[winner].bank += sum(optafel)
     for x in playerlist:
         print 'Player %d has $%d in bank' % (x.index+1, x.bank)
-    deck.shuffle()
+
