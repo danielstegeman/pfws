@@ -1,6 +1,6 @@
 Gebruik script:
 
-Voer Go.1.py uit in een python applicatie naar keuze.
+Voer Go.1.py uit in een python applicatie naar keuze. De output van het spel wordt naar het bestand test.txt geschreven.
 
 
 Bekende problemen in deze versie (Beta):
