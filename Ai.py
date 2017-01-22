@@ -4,11 +4,16 @@ from deuces import Card, Deck, Evaluator
 
 evaluator = Evaluator()
 deck = Deck()
-
+countmatherrors = 0
 
 
 def sigmoid(x):
-    return 1/(1+math.exp(-x))
+    global countmatherrors
+    try:
+        return 1/(1+math.exp(-x))
+    except OverflowError:
+        countmatherrors +=1
+        return 0.1
 
 startinghands = [
     ['AA','KK','QQ', 'JJ', 'TT', '99','88','77'
@@ -63,9 +68,9 @@ class Player():
         self.scoreflop = evaluator.evaluate(self.board[:3], self.hand)
         self.scoreturn = evaluator.evaluate(self.board[:4], self.hand)
         self.pclass = evaluator.get_rank_class(self.score)
-        print "Player %d hand rank = %d (%s)" % (self.index+1,self.score, evaluator.class_to_string(self.pclass))
+        #print "Player %d hand rank = %d (%s)" % (self.index+1,self.score, evaluator.class_to_string(self.pclass))
         rank = evaluator.evaluate(self.board, self.hand)
-        print "Rank for your hand is: %d" % rank
+        #print "Rank for your hand is: %d" % rank
 
 
     def determineOuts(self, turn):
@@ -103,38 +108,45 @@ class Player():
         return t
     def turnriver(self, turn):
         t = self.determineOuts(turn)
-        if 0<t<23:
-            return  sigmoid(10*breakevenamount[t]-10*(self.maxinzet/self.pot)) #PLACEHOLDERS VERVANGEN
-        elif t ==0:
-            return 1
-        elif t > 22:
-            return sigmoid(10*0.5-10*(self.maxinzet/self.pot))
-
+        try:
+            if 0<t<23:
+                return  sigmoid(10*breakevenamount[t]-10*(self.maxinzet/self.pot)) #PLACEHOLDERS VERVANGEN
+            elif t ==0:
+                return 1
+            elif t > 22:
+                return sigmoid(10*0.5-10*(self.maxinzet/self.pot))
+        except ZeroDivisionError:
+            if 0<t<23:
+                return  sigmoid(10*breakevenamount[t]-10*(self.maxinzet/1)) #PLACEHOLDERS VERVANGEN
+            elif t ==0:
+                return 1
+            elif t > 22:
+                return sigmoid(10*0.5-10*(self.maxinzet/1))
     def turns(self, turn):
         if turn == 'flop':
             #print 'flop'
             self.inzet = blind *2 / self.flop()
-            if self.willcall()<0:
+            if self.willcall()<0 and self.inzet>=0:
                 self.inzet *= self.willcall()
             return self.inzet +self.inzet*(random.randint(-15,15)/100)
         if turn == 'turn':
             self.inzet = (100-self.scoreflop/100.0) /self.turnriver(turn)
             self.inzet *= self.inzetander()
-            if self.willcall()<0:
+            if self.willcall()<0 and self.inzet>=0:
                 self.inzet *= self.willcall()
             return self.inzet+self.inzet*(random.randint(-15,15)/100)
         if turn == 'river':
             #print 'turn'
             self.inzet = (100-self.scoreturn/100.0) /self.turnriver(turn) + (100-self.scoreflop/100.0)*(self.turnriverdiff(turn) - 0.5)
             self.inzet *= self.inzetander()
-            if self.willcall()<0:
+            if self.willcall()<0 and self.inzet>=0:
                 self.inzet *= self.willcall()
             return self.inzet + self.inzet*(random.randint(-15,15)/100)
         if turn == 'final':
             #print 'final bets'
             self.inzet = (100-self.scoreturn/100.0)  + (100-self.scoreflop/100.0)*(self.turnriverdiff(turn) - 0.5)
             self. inzet *= self.inzetander()
-            if self.willcall()<0:
+            if self.willcall()<0 and self.inzet>=0:
                 self.inzet *= self.willcall()
             return self.inzet + self.inzet*(random.randint(-15,15)/100)
 

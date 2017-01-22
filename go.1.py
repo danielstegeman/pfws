@@ -1,12 +1,14 @@
 #GO.1
-
+import sys
+f = open("test.txt", 'w')
+sys.stdout = f
 #==============================Variables&imports=============================#
 
 from deuces import Card, Evaluator, Deck
-from Ai import Player
+from Ai import Player, countmatherrors
 import math
 
-pot = 100
+pot = 0
 stages = ['flop','turn','river', 'final']
 g_maxinzet = 0
 gameprogress = True
@@ -57,106 +59,135 @@ def playermoney():
         else:
             print 'Player %d lost $%d' % (x.index+1,optafel[x.index])
 def bettinground(stage):
-    global has_folded, has_raised,beurt,vorigoptafel,optafel,inzetten, turn, g_maxinzet
-    inzetten = [myround(playerlist[0].turns(stages[stage])),myround(playerlist[1].turns(stages[stage]))]
+    global has_folded, has_raised,beurt,vorigoptafel,optafel,inzetten, turn, g_maxinzet, pot
+
     has_raised = [False, False]
 
     print stages[stage]
     while turn == stages[stage]:
-            try:
-                if False not in has_folded:
-                    gameprogress = False
-                    break
-    ##            if has_folded[beurt] == True:
-    ##                beurt += 1
+        pot = sum(optafel)
+        inzetten = [myround(playerlist[0].turns(stages[stage])),myround(playerlist[1].turns(stages[stage]))]
+
+        try:
+            if False not in has_folded:
+                gameprogress = False
+                break
+##            if has_folded[beurt] == True:
+##                beurt += 1
 
 
-                if has_raised[beurt] == False:
-                    if has_folded[beurt] == False:
-                        if inzetten[beurt] <0:
-                            #fold
-                            print '%d folding' % (beurt + 1)
-                            has_folded[beurt] = True
-                            has_raised[beurt] = True
-                            vorigoptafel[beurt] = optafel[beurt]
-                            beurt += 1
+            if has_raised[beurt] == False:
+                print "Player %d's cards: "% (playerlist[beurt].index+1)
+                Card.print_pretty_cards(playerlist[beurt].hand)
+                if has_folded[beurt] == False:
+                    if inzetten[beurt]== 0:
+                        #checking
+                        print 'Player %d checking' %(beurt +1)
+                        has_raised[beurt] = True
+                        vorigoptafel[beurt] = optafel[beurt]
+                        beurt += 1
+
+                    if inzetten[beurt] <0:
+                        #fold
+                        print '%d folding' % (beurt + 1)
+                        print ''
+                        has_folded[beurt] = True
+                        has_raised[beurt] = True
+                        vorigoptafel[beurt] = optafel[beurt]
+                        beurt += 1
 
 
-                        elif inzetten[beurt] < g_maxinzet:
-                            vorigoptafel[beurt] = optafel[beurt]
+                    elif inzetten[beurt] < g_maxinzet:
+                        vorigoptafel[beurt] = optafel[beurt]
 
-                            playerlist[beurt].bank -= inzetten[beurt]
-                            optafel[beurt] += inzetten[beurt]
-                            has_raised[beurt] = True
-                            print '%d inzetten' %(beurt+1)
-                            print optafel[beurt]
-                            beurt += 1
+                        playerlist[beurt].bank -= inzetten[beurt]
+                        optafel[beurt] += inzetten[beurt]
+                        has_raised[beurt] = True
+                        print 'Player %d raises with %d$' %(beurt+1, inzetten[beurt])
+                        print 'Player %d has %d$ on table'%(beurt+1, optafel[beurt])
+                        print ''
+                        beurt += 1
 
-                        else:
-                            vorigoptafel[beurt] = optafel[beurt]
-                            if inzetten[beurt] > g_maxinzet:
-                                g_maxinzet = inzetten[beurt]
-                                for x in playerlist:
-                                    x.maxinzet = g_maxinzet
-                            playerlist[beurt].bank -= inzetten[beurt]
-                            optafel[beurt] += inzetten[beurt]
-
-                            has_raised[beurt] = True
-                            print '%d inzetten' %(beurt+1)
-                            print optafel[beurt]
-                            beurt += 1
-
-
-                else:
-                    if has_folded[beurt] == True:
-                        beurt +=1
-
-                if all(x == True for x in has_raised):
-                    vorigoptafel = optafel
-                    if optafel[beurt] != max(optafel):
-                        if playerlist[beurt].willcall()>=0:
-
-                            optafel[beurt] = max(optafel) #Dit deel callt automatisch
-                            playerlist[beurt].bank -= optafel[beurt]-vorigoptafel[beurt]
-                        else:
-                            #fold
-                            print '%d folding' % (beurt + 1)
-                            has_folded[beurt] = True
-                            has_raised[beurt] = True
-                            vorigoptafel[beurt] = optafel[beurt]
-                            beurt += 1
-
-
-
-                    if any(x == True for x in has_folded):
-                        if stage == 3:
-                            print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
-                            break
-                        else:
-                            turn = stages[stage+1]
-                            break
-                    if all(x==max(optafel) for x in optafel) and all(x == True for x in has_raised):
-                        if stage == 3:
-                            print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
-                            break
-                        else:
-                            turn = stages[stage+1]
-                            break
                     else:
-                        beurt +=1
-                elif has_folded[beurt] == True and has_raised[beurt] == False:
-                    has_raised[beurt] = True
+                        vorigoptafel[beurt] = optafel[beurt]
+                        if inzetten[beurt] > g_maxinzet:
+                            g_maxinzet = inzetten[beurt]
+                            for x in playerlist:
+                                x.maxinzet = g_maxinzet
+                        playerlist[beurt].bank -= inzetten[beurt]
+                        optafel[beurt] += inzetten[beurt]
+
+                        has_raised[beurt] = True
+                        print 'Player %d raises with %d$' %(beurt+1, inzetten[beurt])
+                        print 'Player %d has %d$ on table'%(beurt+1, optafel[beurt])
+                        print ''
+                        beurt += 1
 
 
-            except IndexError:
+            else:
+                if has_folded[beurt] == True:
+                    beurt +=1
+
+            if all(x == True for x in has_raised):
+                vorigoptafel = optafel
+                if optafel[beurt] != max(optafel):
+                    if playerlist[beurt].willcall()>=0:
+
+                        optafel[beurt] = max(optafel) #Dit deel callt automatisch
+                        playerlist[beurt].bank -= optafel[beurt]-vorigoptafel[beurt]
+                        print 'Player %d Calling'% (beurt + 1)
+
+                    else:
+                        #fold
+                        print 'Player %d folding' % (beurt + 1)
+                        has_folded[beurt] = True
+                        has_raised[beurt] = True
+                        vorigoptafel[beurt] = optafel[beurt]
+                        beurt += 1
 
 
-                beurt = 0
+
+                if any(x == True for x in has_folded):
+                    if stage == 3:
+                        print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
+                        break
+                    else:
+                        print 'The pot is now %d$' %(pot)
+                        print ''
+                        turn = stages[stage+1]
+                        break
+                if all(x==max(optafel) for x in optafel) and all(x == True for x in has_raised):
+                    if stage == 3:
+                        print "showdown:" #alle bedragen op tafel zijn gelijk aan het hoogste
+                        break
+                    else:
+                        print 'The pot is now %d$' %(pot)
+                        print ''
+                        turn = stages[stage+1]
+                        break
+                else:
+                    beurt +=1
+            elif has_folded[beurt] == True and has_raised[beurt] == False:
+                has_raised[beurt] = True
+
+
+        except IndexError:
+
+
+            beurt = 0
 
 #=============================Hoofdloop======================================#
 
 #"""
-for x in range(100):
+
+#debugging vars
+countUnknownkeyerrors = 0
+countmathoverflowerrors = 0
+countraiseoverflow = 0
+
+#------------
+for x in range(1000):
+    print 'round %d' %(x)
     global has_folded,has_raised, g_maxinzet
 
     deck.shuffle()
@@ -170,8 +201,7 @@ for x in range(100):
         x.board = board
         x.pot = pot
     hands = [Player1.hand,Player2.hand]
-    print "The board:"
-    Card.print_pretty_cards(board)
+
     for x in playerlist:
         print "Player %d's cards: "% (x.index+1)
         Card.print_pretty_cards(x.hand)
@@ -189,20 +219,34 @@ for x in range(100):
         g_maxinzet = 0
         for x in playerlist:
             x.maxinzet = g_maxinzet
+        print "The board:"
+        Card.print_pretty_cards(board[:3])
+
         bettinground(1)
         g_maxinzet = 0
         for x in playerlist:
             x.maxinzet = g_maxinzet
+        print "The board:"
+        Card.print_pretty_cards(board[:4])
+
         bettinground(2)
         g_maxinzet = 0
         for x in playerlist:
             x.maxinzet = g_maxinzet
+
+        print "The board:"
+        Card.print_pretty_cards(board)
         bettinground(3)
 
         winner = evaluator.hand_summary(board, hands)
+        if pot > 2000:
+            print 'Unknown bug causes the raise to be absolutely bonkers, skipping this round'
+            countraiseoverflow+=1
+            continue
         playermoney()
     except KeyError:
         print "KeyError, Skipping round"
+        countUnknownkeyerrors +=1
         #oorzaak van de keyerror onbekend
         continue
     try:
@@ -214,3 +258,8 @@ for x in range(100):
     for x in playerlist:
         print 'Player %d has $%d in bank' % (x.index+1, x.bank)
 
+print countmatherrors
+print countraiseoverflow
+print countUnknownkeyerrors
+
+f.close()
